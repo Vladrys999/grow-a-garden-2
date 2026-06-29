@@ -1,20 +1,26 @@
--- [[ H4XSCRIPTS - GROOVY GARDEN 2 PREMIUM ]]
--- Полная премиум-версия с кастомными уведомлениями и интро-анимацией
--- Активация/Скрытие: Правый Shift
+-- [[ H4XSCRIPTS - GROOVY GARDEN 2 REMASTERED ]]
+-- Фикс разметки UI + Рабочий автофарм. Скрытие: Правый Shift
 
 local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
 local CoreGui = game:GetService("CoreGui")
 local Players = game:GetService("Players")
+local VirtualUser = game:GetService("VirtualUser")
 
 local LocalPlayer = Players.LocalPlayer
 
--- Защита от дубликатов (очистка старого интерфейса при перезапуске)
+-- Защита от дубликатов
 if CoreGui:FindFirstChild("H4xScripts_Premium") then
     CoreGui.H4xScripts_Premium:Destroy()
 end
 
--- Создание корневого интерфейса
+-- Настройки автоматизации
+_G.AutoPump = false
+_G.AutoCollectCash = false
+_G.AutoCollectFruit = false
+_G.FruitInterval = 10
+
+-- Корневой GUI
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "H4xScripts_Premium"
 ScreenGui.ResetOnSpawn = false
@@ -23,65 +29,43 @@ ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 local success, _ = pcall(function() ScreenGui.Parent = CoreGui end)
 if not success then ScreenGui.Parent = LocalPlayer:WaitForChild("PlayerGui") end
 
--- Единая дизайн-палитра (Modern Dark)
 local Theme = {
-    Background    = Color3.fromRGB(20, 21, 20),      
-    SidebarBg     = Color3.fromRGB(26, 27, 26),      
-    CardBg        = Color3.fromRGB(32, 33, 32),      
-    ToggleOff     = Color3.fromRGB(55, 56, 55),
+    Background    = Color3.fromRGB(22, 23, 22),      
+    SidebarBg     = Color3.fromRGB(28, 29, 28),      
+    CardBg        = Color3.fromRGB(34, 35, 34),      
+    ToggleOff     = Color3.fromRGB(60, 62, 60),
     ToggleOn      = Color3.fromRGB(255, 255, 255),   
     TextMain      = Color3.fromRGB(245, 245, 245),
     TextMuted     = Color3.fromRGB(150, 155, 150),
-    Border        = Color3.fromRGB(45, 46, 45),
+    Border        = Color3.fromRGB(48, 50, 48),
     Accent        = Color3.fromRGB(255, 255, 255),
-    Smooth        = TweenInfo.new(0.3, Enum.EasingStyle.Cubic, Enum.EasingDirection.Out),
-    Fast          = TweenInfo.new(0.15, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+    Smooth        = TweenInfo.new(0.25, Enum.EasingStyle.Cubic, Enum.EasingDirection.Out)
 }
 
--- [[ КОНТЕЙНЕР ДЛЯ СТИЛЬНЫХ УВЕДОМЛЕНИЙ ]]
+-- [[ КАСТОМНЫЕ УВЕДОМЛЕНИЯ ]]
 local NotifyContainer = Instance.new("Frame")
-NotifyContainer.Name = "Notifications"
 NotifyContainer.Size = UDim2.new(0, 280, 1, -40)
 NotifyContainer.Position = UDim2.new(1, -300, 0, 20)
 NotifyContainer.BackgroundTransparency = 1
 NotifyContainer.Parent = ScreenGui
 
 local NotifyLayout = Instance.new("UIListLayout")
-NotifyLayout.Padding = UDim.new(0, 10)
+NotifyLayout.Padding = UDim.new(0, 8)
 NotifyLayout.VerticalAlignment = Enum.VerticalAlignment.Bottom
 NotifyLayout.Parent = NotifyContainer
 
-local function CustomNotify(title, text, duration)
-    duration = duration or 4
-    
+local function CustomNotify(title, text)
     local Card = Instance.new("Frame")
-    Card.Size = UDim2.new(1, 0, 0, 65)
+    Card.Size = UDim2.new(1, 0, 0, 55)
     Card.BackgroundColor3 = Theme.SidebarBg
-    Card.BackgroundTransparency = 1 -- Старт с прозрачности для анимации
-    Card.ClipsDescendants = true
+    Card.BackgroundTransparency = 0.1
     Card.Parent = NotifyContainer
-    
-    local Corner = Instance.new("UICorner", Card)
-    Corner.CornerRadius = UDim.new(0, 8)
-    
-    local Stroke = Instance.new("UIStroke", Card)
-    Stroke.Color = Theme.Border
-    Stroke.Thickness = 1
-    Stroke.Transparency = 1
-    
-    local TIcon = Instance.new("TextLabel")
-    TIcon.Size = UDim2.new(0, 30, 0, 30)
-    TIcon.Position = UDim2.new(0, 12, 0.5, -15)
-    TIcon.BackgroundTransparency = 1
-    TIcon.Font = Enum.Font.GothamBold
-    TIcon.Text = "⚡"
-    TIcon.TextColor3 = Theme.TextMain
-    TIcon.TextSize = 16
-    TIcon.Parent = Card
+    Instance.new("UICorner", Card).CornerRadius = UDim.new(0, 8)
+    local s = Instance.new("UIStroke", Card) s.Color = Theme.Border
     
     local TTitle = Instance.new("TextLabel")
-    TTitle.Size = UDim2.new(1, -55, 0, 18)
-    TTitle.Position = UDim2.new(0, 45, 0, 12)
+    TTitle.Size = UDim2.new(1, -20, 0, 18)
+    TTitle.Position = UDim2.new(0, 12, 0, 8)
     TTitle.BackgroundTransparency = 1
     TTitle.Font = Enum.Font.GothamBold
     TTitle.Text = title
@@ -91,66 +75,48 @@ local function CustomNotify(title, text, duration)
     TTitle.Parent = Card
     
     local TText = Instance.new("TextLabel")
-    TText.Size = UDim2.new(1, -55, 0, 16)
-    TText.Position = UDim2.new(0, 45, 0, 30)
+    TText.Size = UDim2.new(1, -20, 0, 16)
+    TText.Position = UDim2.new(0, 12, 0, 24)
     TText.BackgroundTransparency = 1
     TText.Font = Enum.Font.Gotham
     TText.Text = text
     TText.TextColor3 = Theme.TextMuted
-    TText.TextSize = 12
+    TText.TextSize = 11
     TText.TextXAlignment = Enum.TextXAlignment.Left
     TText.Parent = Card
 
-    -- Анимация появления (Сдвиг + Проявление)
-    Card.Position = UDim2.new(1, 50, 0, 0)
-    TweenService:Create(Card, Theme.Smooth, {BackgroundTransparency = 0.1}):Play()
-    TweenService:Create(Stroke, Theme.Smooth, {Transparency = 0}):Play()
-    
-    task.wait(duration)
-    
-    -- Анимация ухода
-    local OutTween = TweenService:Create(Card, Theme.Smooth, {BackgroundTransparency = 1, Size = UDim2.new(1, 0, 0, 0)})
-    TweenService:Create(Stroke, Theme.Smooth, {Transparency = 1}):Play()
-    TweenService:Create(TIcon, Theme.Fast, {TextTransparency = 1}):Play()
-    TweenService:Create(TTitle, Theme.Fast, {TextTransparency = 1}):Play()
-    TweenService:Create(TText, Theme.Fast, {TextTransparency = 1}):Play()
-    OutTween:Play()
-    OutTween.Completed:Connect(function() Card:Destroy() end)
+    task.spawn(function()
+        task.wait(3.5)
+        TweenService:Create(Card, Theme.Smooth, {BackgroundTransparency = 1}):Play()
+        TweenService:Create(s, Theme.Smooth, {Transparency = 1}):Play()
+        TweenService:Create(TTitle, Theme.Smooth, {TextTransparency = 1}):Play()
+        TweenService:Create(TText, Theme.Smooth, {TextTransparency = 1}):Play()
+        task.wait(0.3)
+        Card:Destroy()
+    end)
 end
 
--- [[ АНИМАЦИЯ ЗАГРУЗКИ (LOADING SCREEN) ]]
+-- [[ АНИМАЦИЯ ЗАГРУЗКИ ]]
 local LoadingFrame = Instance.new("Frame")
-LoadingFrame.Size = UDim2.new(0, 320, 0, 180)
-LoadingFrame.Position = UDim2.new(0.5, -160, 0.5, -90)
+LoadingFrame.Size = UDim2.new(0, 300, 0, 150)
+LoadingFrame.Position = UDim2.new(0.5, -150, 0.5, -75)
 LoadingFrame.BackgroundColor3 = Theme.Background
 LoadingFrame.Parent = ScreenGui
-
-Instance.new("UICorner", LoadingFrame).CornerRadius = UDim.new(0, 12)
-local LStroke = Instance.new("UIStroke", LoadingFrame)
-LStroke.Color = Theme.Border
+Instance.new("UICorner", LoadingFrame).CornerRadius = UDim.new(0, 10)
+local LStroke = Instance.new("UIStroke", LoadingFrame) LStroke.Color = Theme.Border
 
 local LTitle = Instance.new("TextLabel")
 LTitle.Size = UDim2.new(1, 0, 0, 30)
-LTitle.Position = UDim2.new(0, 0, 0, 40)
+LTitle.Position = UDim2.new(0, 0, 0, 35)
 LTitle.Font = Enum.Font.GothamBold
 LTitle.Text = "H4xScripts"
 LTitle.TextColor3 = Theme.TextMain
-LTitle.TextSize = 22
+LTitle.TextSize = 20
 LTitle.Parent = LoadingFrame
 
-local LStatus = Instance.new("TextLabel")
-LStatus.Size = UDim2.new(1, 0, 0, 20)
-LStatus.Position = UDim2.new(0, 0, 0, 75)
-LStatus.Font = Enum.Font.Gotham
-LStatus.Text = "Подключение к саб-системам..."
-LStatus.TextColor3 = Theme.TextMuted
-LStatus.TextSize = 12
-LStatus.Parent = LoadingFrame
-
--- Полоса загрузки
 local BarBg = Instance.new("Frame")
-BarBg.Size = UDim2.new(0, 220, 0, 4)
-BarBg.Position = UDim2.new(0.5, -110, 0, 115)
+BarBg.Size = UDim2.new(0, 200, 0, 4)
+BarBg.Position = UDim2.new(0.5, -100, 0, 85)
 BarBg.BackgroundColor3 = Theme.CardBg
 BarBg.Parent = LoadingFrame
 Instance.new("UICorner", BarBg).CornerRadius = UDim.new(1, 0)
@@ -161,107 +127,60 @@ BarFill.BackgroundColor3 = Theme.Accent
 BarFill.Parent = BarBg
 Instance.new("UICorner", BarFill).CornerRadius = UDim.new(1, 0)
 
--- Имитация красивой загрузки ядра
-task.spawn(function()
-    task.wait(0.5)
-    LStatus.Text = "Проверка окружения инжектора..."
-    TweenService:Create(BarFill, TweenInfo.new(0.6), {Size = UDim2.new(0.4, 0, 1, 0)}):Play()
-    task.wait(0.7)
-    LStatus.Text = "Отрисовка Fluent UI дизайна..."
-    TweenService:Create(BarFill, TweenInfo.new(0.5), {Size = UDim2.new(0.8, 0, 1, 0)}):Play()
-    task.wait(0.6)
-    LStatus.Text = "Успешно импортировано!"
-    TweenService:Create(BarFill, TweenInfo.new(0.3), {Size = UDim2.new(1, 0, 1, 0)}):Play()
-    task.wait(0.4)
-    
-    -- Исчезновение лоадера
-    TweenService:Create(LoadingFrame, Theme.Smooth, {BackgroundTransparency = 1}):Play()
-    TweenService:Create(LStroke, Theme.Smooth, {Transparency = 1}):Play()
-    TweenService:Create(LTitle, Theme.Fast, {TextTransparency = 1}):Play()
-    TweenService:Create(LStatus, Theme.Fast, {TextTransparency = 1}):Play()
-    TweenService:Create(BarBg, Theme.Fast, {BackgroundTransparency = 1}):Play()
-    TweenService:Create(BarFill, Theme.Fast, {BackgroundTransparency = 1}):Play()
-    
-    task.wait(0.3)
-    LoadingFrame:Destroy()
-    
-    -- Появление главного меню и кастомного уведомления
-    ScreenGui.MainWindow.Visible = true
-    task.spawn(function() CustomNotify("H4xScripts Premium", "Интерфейс инициализирован! Скрытие меню: Right Shift", 4) end)
-end)
-
-
--- [[ ОСНОВНОЕ ОКНО ИНТЕРФЕЙСА ]]
+-- [[ ГЛАВНОЕ ОКНО ]]
 local MainFrame = Instance.new("Frame")
 MainFrame.Name = "MainWindow"
-MainFrame.Size = UDim2.new(0, 640, 0, 460)
-MainFrame.Position = UDim2.new(0.5, -320, 0.5, -230)
+MainFrame.Size = UDim2.new(0, 630, 0, 450)
+MainFrame.Position = UDim2.new(0.5, -315, 0.5, -225)
 MainFrame.BackgroundColor3 = Theme.Background
-MainFrame.BackgroundTransparency = 0.15
-MainFrame.Visible = false -- Скрыто, пока идет анимация лоадера
+MainFrame.BackgroundTransparency = 0.12
+MainFrame.Visible = false
 MainFrame.Parent = ScreenGui
 
-Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 12)
-local MainStroke = Instance.new("UIStroke", MainFrame)
-MainStroke.Color = Theme.Border
+Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 10)
+local MainStroke = Instance.new("UIStroke", MainFrame) MainStroke.Color = Theme.Border
 
--- Верхняя панель (Шапка)
+-- Шапка (Header)
 local Header = Instance.new("Frame")
-Header.Size = UDim2.new(1, 0, 0, 45)
+Header.Size = UDim2.new(1, 0, 0, 50)
 Header.BackgroundTransparency = 1
 Header.Parent = MainFrame
 
 local Title = Instance.new("TextLabel")
-Title.Position = UDim2.new(0, 20, 0, 10)
-Title.Size = UDim2.new(0, 200, 0, 18)
+Title.Position = UDim2.new(0, 20, 0, 12)
+Title.Size = UDim2.new(0, 150, 0, 18)
 Title.Font = Enum.Font.GothamBold
 Title.Text = "H4xScripts"
 Title.TextColor3 = Theme.TextMain
-Title.TextSize = 16
+Title.TextSize = 15
 Title.TextXAlignment = Enum.TextXAlignment.Left
 Title.Parent = Header
 
 local Subtitle = Instance.new("TextLabel")
-Subtitle.Position = UDim2.new(0, 20, 0, 26)
-Subtitle.Size = UDim2.new(0, 400, 0, 14)
+Subtitle.Position = UDim2.new(0, 20, 0, 28)
+Subtitle.Size = UDim2.new(0, 300, 0, 14)
 Subtitle.Font = Enum.Font.Gotham
-Subtitle.Text = "Catch & Feed a Brainrot! | discord.gg/H4xScripts"
+Subtitle.Text = "Groovy Garden 2 | discord.gg/H4xScripts"
 Subtitle.TextColor3 = Theme.TextMuted
 Subtitle.TextSize = 11
 Subtitle.TextXAlignment = Enum.TextXAlignment.Left
 Subtitle.Parent = Header
 
--- Логика Drag&Drop для окна
-local dragging, dragInput, dragStart, startPos
-MainFrame.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 then
-        dragging = true; dragStart = input.Position; startPos = MainFrame.Position
-        input.Changed:Connect(function() if input.UserInputState == Enum.UserInputState.End then dragging = false end end)
-    end
-end)
-MainFrame.InputChanged:Connect(function(input) if input.UserInputType == Enum.UserInputType.MouseMovement then dragInput = input end end)
-UserInputService.InputChanged:Connect(function(input)
-    if input == dragInput and dragging then
-        local delta = input.Position - dragStart
-        MainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
-    end
-end)
-
 -- Сайдбар
 local Sidebar = Instance.new("Frame")
-Sidebar.Size = UDim2.new(0, 175, 1, -65)
-Sidebar.Position = UDim2.new(0, 15, 0, 55)
+Sidebar.Size = UDim2.new(0, 170, 1, -70)
+Sidebar.Position = UDim2.new(0, 15, 0, 60)
 Sidebar.BackgroundTransparency = 1
 Sidebar.Parent = MainFrame
 
 local SidebarLayout = Instance.new("UIListLayout")
-SidebarLayout.Padding = UDim.new(0, 5)
+SidebarLayout.Padding = UDim.new(0, 4)
 SidebarLayout.Parent = Sidebar
 
 -- Контейнер страниц
 local PageContainer = Instance.new("Frame")
-PageContainer.Size = UDim2.new(1, -215, 1, -65)
-PageContainer.Position = UDim2.new(0, 200, 0, 55)
+PageContainer.Size = UDim2.new(1, -210, 1, -70)
+PageContainer.Position = UDim2.new(0, 195, 0, 60)
 PageContainer.BackgroundTransparency = 1
 PageContainer.Parent = MainFrame
 
@@ -271,7 +190,7 @@ function Engine:CreateTab(name, icon, isDefault)
     local Tab = {}
     
     local TabButton = Instance.new("TextButton")
-    TabButton.Size = UDim2.new(1, 0, 0, 36)
+    TabButton.Size = UDim2.new(1, 0, 0, 34)
     TabButton.BackgroundColor3 = Theme.CardBg
     TabButton.BackgroundTransparency = isDefault and 0.4 or 1
     TabButton.Font = Enum.Font.GothamMedium
@@ -291,7 +210,7 @@ function Engine:CreateTab(name, icon, isDefault)
     Page.Parent = PageContainer
     
     local PageLayout = Instance.new("UIListLayout")
-    PageLayout.Padding = UDim.new(0, 10)
+    PageLayout.Padding = UDim.new(0, 8)
     PageLayout.Parent = Page
     PageLayout.Changed:Connect(function() Page.CanvasSize = UDim2.new(0, 0, 0, PageLayout.AbsoluteContentSize.Y + 10) end)
     
@@ -312,24 +231,23 @@ function Engine:CreateTab(name, icon, isDefault)
 
     function Tab:AddGroupLabel(text)
         local Label = Instance.new("TextLabel")
-        Label.Size = UDim2.new(1, 0, 0, 22)
+        Label.Size = UDim2.new(1, 0, 0, 24)
         Label.BackgroundTransparency = 1
         Label.Font = Enum.Font.GothamBold
         Label.Text = text
         Label.TextColor3 = Theme.TextMain
-        Label.TextSize = 14
+        Label.TextSize = 13
         Label.TextXAlignment = Enum.TextXAlignment.Left
         Label.Parent = Page
     end
 
-    function Tab:AddToggle(text, callback)
+    function Tab:AddToggle(text, globalVar)
         local Row = Instance.new("Frame")
-        Row.Size = UDim2.new(1, -5, 0, 44)
+        Row.Size = UDim2.new(1, -5, 0, 40)
         Row.BackgroundColor3 = Theme.CardBg
         Row.BackgroundTransparency = 0.4
         Row.Parent = Page
-        Instance.new("UICorner", Row).CornerRadius = UDim.new(0, 8)
-        local s = Instance.new("UIStroke", Row) s.Color = Theme.Border s.Thickness = 0.6
+        Instance.new("UICorner", Row).CornerRadius = UDim.new(0, 6)
         
         local Label = Instance.new("TextLabel")
         Label.Size = UDim2.new(1, -60, 1, 0)
@@ -343,42 +261,39 @@ function Engine:CreateTab(name, icon, isDefault)
         Label.Parent = Row
         
         local ToggleBtn = Instance.new("TextButton")
-        ToggleBtn.Size = UDim2.new(0, 38, 0, 20)
-        ToggleBtn.Position = UDim2.new(1, -50, 0.5, -10)
+        ToggleBtn.Size = UDim2.new(0, 36, 0, 18)
+        ToggleBtn.Position = UDim2.new(1, -48, 0.5, -9)
         ToggleBtn.BackgroundColor3 = Theme.ToggleOff
         ToggleBtn.Text = ""
         ToggleBtn.Parent = Row
         Instance.new("UICorner", ToggleBtn).CornerRadius = UDim.new(1, 0)
         
         local Circle = Instance.new("Frame")
-        Circle.Size = UDim2.new(0, 14, 0, 14)
-        Circle.Position = UDim2.new(0, 3, 0.5, -7)
+        Circle.Size = UDim2.new(0, 12, 0, 12)
+        Circle.Position = UDim2.new(0, 3, 0.5, -6)
         Circle.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
         Circle.Parent = ToggleBtn
         Instance.new("UICorner", Circle).CornerRadius = UDim.new(1, 0)
         
-        local active = false
         ToggleBtn.MouseButton1Click:Connect(function()
-            active = not active
-            local targetPos = active and UDim2.new(1, -17, 0.5, -7) or UDim2.new(0, 3, 0.5, -7)
-            local targetColor = active and Theme.ToggleOn or Theme.ToggleOff
-            local circleColor = active and Theme.Background or Color3.fromRGB(255, 255, 255)
+            _G[globalVar] = not _G[globalVar]
+            local targetPos = _G[globalVar] and UDim2.new(1, -15, 0.5, -6) or UDim2.new(0, 3, 0.5, -6)
+            local targetColor = _G[globalVar] and Theme.ToggleOn or Theme.ToggleOff
+            local circleColor = _G[globalVar] and Theme.Background or Color3.fromRGB(255, 255, 255)
             
             TweenService:Create(Circle, Theme.Smooth, {Position = targetPos, BackgroundColor3 = circleColor}):Play()
             TweenService:Create(ToggleBtn, Theme.Smooth, {BackgroundColor3 = targetColor}):Play()
-            
-            task.spawn(function() CustomNotify(text, active and "Функция активирована" or "Функция отключена", 2) end)
-            pcall(callback, active)
+            CustomNotify(text, _G[globalVar] and "Активировано" or "Отключено")
         end)
     end
 
-    function Tab:AddTextBox(text, placeholder, callback)
+    function Tab:AddTextBox(text, placeholder, globalVar)
         local Row = Instance.new("Frame")
-        Row.Size = UDim2.new(1, -5, 0, 44)
+        Row.Size = UDim2.new(1, -5, 0, 40)
         Row.BackgroundColor3 = Theme.CardBg
         Row.BackgroundTransparency = 0.4
         Row.Parent = Page
-        Instance.new("UICorner", Row).CornerRadius = UDim.new(0, 8)
+        Instance.new("UICorner", Row).CornerRadius = UDim.new(0, 6)
         
         local Label = Instance.new("TextLabel")
         Label.Size = UDim2.new(1, -120, 1, 0)
@@ -392,8 +307,8 @@ function Engine:CreateTab(name, icon, isDefault)
         Label.Parent = Row
         
         local Input = Instance.new("TextBox")
-        Input.Size = UDim2.new(0, 80, 0, 24)
-        Input.Position = UDim2.new(1, -92, 0.5, -12)
+        Input.Size = UDim2.new(0, 70, 0, 22)
+        Input.Position = UDim2.new(1, -82, 0.5, -11)
         Input.BackgroundColor3 = Theme.Background
         Input.Font = Enum.Font.Gotham
         Input.Text = placeholder
@@ -403,32 +318,100 @@ function Engine:CreateTab(name, icon, isDefault)
         Instance.new("UICorner", Input).CornerRadius = UDim.new(0, 4)
         
         Input.FocusLost:Connect(function()
-            pcall(callback, Input.Text)
+            local num = tonumber(Input.Text)
+            if num then _G[globalVar] = num end
         end)
     end
 
     return Tab
 end
 
--- Вкладки
-local MainTab   = Engine:CreateTab("Main", "⟨ ⟩", true)
+-- Сборка интерфейса строго по порядку
+local MainTab   = Engine:CreateTab("Main", "{}", true)
 local UpgradeTab= Engine:CreateTab("Upgrade Tab", "⛏", false)
 local MiscTab   = Engine:CreateTab("Misc", "📍", false)
 local DupeTab   = Engine:CreateTab("Dupe", "🗂", false)
 local PlayerTab = Engine:CreateTab("Local Player", "⚙", false)
 
--- Компоненты Main
 MainTab:AddGroupLabel("Main")
-MainTab:AddToggle("Auto Pump", function(state) end)
-MainTab:AddToggle("Auto Collect Cash", function(state) end)
+MainTab:AddToggle("Auto Pump", "AutoPump")
+MainTab:AddToggle("Auto Collect Cash", "AutoCollectCash")
 
 MainTab:AddGroupLabel("Auto Collect")
-MainTab:AddTextBox("Collect Fruit Every", "10", function(val) end)
-MainTab:AddToggle("Auto Collect Fruit", function(state) end)
+MainTab:AddTextBox("Collect Fruit Every", "10", "FruitInterval")
+MainTab:AddToggle("Auto Collect Fruit", "AutoCollectFruit")
 
--- Переключатель Right Shift
+-- Перетаскивание
+local dragging, dragInput, dragStart, startPos
+MainFrame.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragging = true; dragStart = input.Position; startPos = MainFrame.Position
+        input.Changed:Connect(function() if input.UserInputState == Enum.UserInputState.End then dragging = false end end)
+    end
+end)
+MainFrame.InputChanged:Connect(function(input) if input.UserInputType == Enum.UserInputType.MouseMovement then dragInput = input end end)
+UserInputService.InputChanged:Connect(function(input)
+    if input == dragInput and dragging then
+        local delta = input.Position - dragStart
+        MainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+    end
+end)
+
+-- Анимация симулятора загрузки
+task.spawn(function()
+    TweenService:Create(BarFill, TweenInfo.new(1.2), {Size = UDim2.new(1, 0, 1, 0)}):Play()
+    task.wait(1.3)
+    LoadingFrame:Destroy()
+    MainFrame.Visible = true
+    CustomNotify("H4xScripts", "Скрипт успешно запущен! Меню на Right Shift")
+end)
+
+-- Скрытие на правый Shift
 UserInputService.InputBegan:Connect(function(input, processed)
     if not processed and input.KeyCode == Enum.KeyCode.RightShift then
         ScreenGui.Enabled = not ScreenGui.Enabled
+    end
+end)
+
+-- [[ ИГРОВАЯ ЛОГИКА АВТОФАРМА (РЕАЛЬНЫЕ КЛИКИ) ]]
+task.spawn(function()
+    while task.wait(0.3) do
+        -- 1. Сбор выпавших денег/монет
+        if _G.AutoCollectCash then
+            for _, v in pairs(workspace:GetDescendants()) do
+                if v:IsA("BasePart") and (v.Name:find("Cash") or v.Name:find("Coin") or v:FindFirstChild("TouchTransmitter")) then
+                    pcall(function()
+                        if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+                            v.CFrame = LocalPlayer.Character.HumanoidRootPart.CFrame
+                        end
+                    end)
+                end
+            end
+        end
+        
+        -- 2. Нажатие на насос (Полив)
+        if _G.AutoPump then
+            for _, v in pairs(workspace:GetDescendants()) do
+                if v:IsA("ClickDetector") and (v.Parent.Name:find("Pump") or v.Parent.Name:find("Water") or v.Parent.Name:find("Well")) then
+                    fireclickdetector(v)
+                end
+            end
+        end
+    end
+end)
+
+-- 3. Сбор фруктов по кулдауну
+task.spawn(function()
+    while true do
+        if _G.AutoCollectFruit then
+            for _, v in pairs(workspace:GetDescendants()) do
+                if v:IsA("ClickDetector") and (v.Parent.Name:find("Fruit") or v.Parent.Name:find("Apple") or v.Parent.Name:find("Tree")) then
+                    fireclickdetector(v)
+                end
+            end
+            task.wait(_G.FruitInterval)
+        else
+            task.wait(1)
+        end
     end
 end)

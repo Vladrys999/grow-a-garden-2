@@ -28,16 +28,33 @@ end
 SendNotification("Garden Engine", "Загрузка интерфейса...", 4)
 task.wait(1)
 
--- ССЫЛКА НА ВАШ ИНТЕРФЕЙС (УЖЕ НАСТРОЕНА)
+-- ССЫЛКА НА ВАШ ИНТЕРФЕЙС
 local mainScriptUrl = "https://raw.githubusercontent.com/Vladrys999/grow-a-garden-2/main/gui.lua"
 
-local success, err = pcall(function()
-    loadstring(game:HttpGet(mainScriptUrl))()
-end)
+-- Обход ошибки loadstring через кастомную функцию загрузки (совместимо со всеми инжекторами)
+local function safeLoad(url)
+    local success, code = pcall(game.HttpGet, game, url)
+    if not success then return false, "Не удалось скачать код" end
+    
+    local loadMethod = loadstring or (syn and syn.loadstring) or (Fluxus and Fluxus.loadstring)
+    if not loadMethod then
+        return false, "Ваш инжектор не поддерживает loadstring"
+    end
+    
+    local func, err = loadMethod(code)
+    if not func then return false, err end
+    
+    local runSuccess, runErr = pcall(func)
+    if not runSuccess then return false, runErr end
+    
+    return true
+end
+
+local success, err = safeLoad(mainScriptUrl)
 
 if success then
-    SendNotification("Успешно!", "Интерфейс загружен. Если скрыт, нажми INSERT.", 5)
+    SendNotification("Успешно!", "Интерфейс загружен. Скрытие на ПРАВЫЙ SHIFT.", 5)
 else
-    SendNotification("Ошибка загрузки", "Проверь консоль F9.", 5)
+    SendNotification("Ошибка запуска", "Проверь консоль F9.", 5)
     warn("[Garden Engine Error]: " .. tostring(err))
 end
